@@ -3,7 +3,7 @@
  * Plugin Name: Nakama Instagram Feed
  * Plugin URI: https://imperiodev.com
  * Description: Conecta tu cuenta de Instagram para mostrar el feed en tiempo real. Optimizado y personalizado para Nakama Bordados.
- * Version: 1.1.0
+ * Version: 1.2.0
  * Author: ImperioDev
  * Author URI: https://imperiodev.com
  * License: GPL2
@@ -100,6 +100,24 @@ class Nakama_Instagram_Feed
         ?>
         <div class="wrap">
             <h1>Configuración Nakama Instagram Feed</h1>
+            
+            <div class="card" style="max-width: 100%; margin-bottom: 20px;">
+                <h2>Ayuda rápida / Instrucciones</h2>
+                <ol>
+                    <li>
+                        <strong>1. Obtener Token:</strong> Genera tu "User Access Token" en la 
+                        <a href="https://developers.facebook.com/docs/instagram-basic-display-api/getting-started" target="_blank">API de Instagram Basic Display</a>.
+                    </li>
+                    <li>
+                        <strong>2. Configurar:</strong> Pega el token en el campo de abajo y guarda los cambios.
+                    </li>
+                    <li>
+                        <strong>3. Implementar:</strong> Copia y pega el siguiente shortcode en cualquier página:
+                        <code>[nakama_instagram_feed]</code>
+                    </li>
+                </ol>
+            </div>
+
             <form action="options.php" method="post">
                 <?php
                 settings_fields($this->option_name);

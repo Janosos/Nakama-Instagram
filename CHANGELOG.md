@@ -1,6 +1,10 @@
 # Changelog
 
-## [1.0.0] - 2026-02-01
+## [1.2.0] - 2026-02-01
+### Añadido
+- Nueva sección de "Ayuda / Instrucciones" dentro de la configuración del plugin con un walkthrough paso a paso para la activación.
+
+## [1.1.0] - 2026-02-01
 ### Añadido
 - Lanzamiento inicial del plugin.
 - Conexión con Instagram Basic Display API.
