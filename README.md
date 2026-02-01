@@ -10,7 +10,8 @@ Plugin de WordPress desarrollado a medida para **Nakama Bordados**. Conecta tu c
 *   **Personalización**:
     *   Campos de configuración para el Token de Acceso.
     *   Texto del encabezado modificable.
-    *   Opción para mostrar/ocultar los créditos de desarrollo ("Desarrollado por ImperioDev").
+    *   Subtítulo (descripción corta) opcional.
+    *   Alineación del encabezado (Izquierda, Centro, Derecha).
 *   **Shortcode**: Integración sencilla en cualquier parte de la web mediante `[nakama_instagram_feed]`.
 
 ## Instalación
@@ -27,8 +28,9 @@ Plugin de WordPress desarrollado a medida para **Nakama Bordados**. Conecta tu c
 
 1.  **Instagram Access Token**: Necesitas generar un "User Token" desde la API de Instagram Basic Display. Pégalo en el campo correspondiente.
 2.  **Texto del Encabezado**: Define el título que aparecerá sobre el feed (ej. "SÍGUENOS EN INSTAGRAM").
-3.  **Créditos**: Activa la casilla si deseas mostrar "Desarrollado por ImperioDev" al pie del feed.
-4.  Guarda los cambios.
+3.  **Subtítulo**: (Opcional) Texto más pequeño debajo del título (ej. "@usuario").
+4.  **Alineación**: Selecciona la alineación del texto (Izquierda, Centro, Derecha).
+5.  Guarda los cambios.
 
 ## Uso
 
