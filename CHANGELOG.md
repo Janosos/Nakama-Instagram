@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.0] - 2026-02-01
+### Añadido
+- **Auto-Refresh de Tokens**: Implementación de lógica interna para renovar automáticamente el token de acceso cuando tiene más de 45 días de antigüedad.
+- Nuevos campos opcionales **App ID** y **App Secret** en la configuración (requeridos para el auto-refresh de tokens Graph API `EAA`).
+- Visualización de la fecha de generación y antigüedad del token en el panel de administración.
+
 ## [1.3.0] - 2026-02-01
 ### Añadido
 - Soporte para **Instagram Graph API** (Cuentas Business/Creator) con tokens `EAA...`.

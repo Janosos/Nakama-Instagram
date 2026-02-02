@@ -46,53 +46,46 @@ class Nakama_Instagram_Feed
 
     public function register_settings()
     {
-        register_setting($this->option_name, $this->option_name);
+        register_setting($this->option_name, $this->option_name, array($this, 'sanitize_settings'));
 
-        add_settings_section(
-            'nakama_api_section',
-            'Configuración de API',
-            null,
-            'nakama-instagram-feed'
-        );
+        add_settings_section('nakama_api_section', 'Configuración de API', null, 'nakama-instagram-feed');
 
-        add_settings_field(
-            'access_token',
-            'Instagram Access Token',
-            array($this, 'access_token_callback'),
-            'nakama-instagram-feed',
-            'nakama_api_section'
-        );
+        add_settings_field('access_token', 'Instagram Access Token', array($this, 'access_token_callback'), 'nakama-instagram-feed', 'nakama_api_section');
 
-        add_settings_section(
-            'nakama_display_section',
-            'Configuración Visual',
-            null,
-            'nakama-instagram-feed'
-        );
+        // New fields for Auto-Refresh (Graph API)
+        add_settings_field('app_id', 'App ID (Opcional para Auto-fresh)', array($this, 'app_id_callback'), 'nakama-instagram-feed', 'nakama_api_section');
+        add_settings_field('app_secret', 'App Secret (Opcional para Auto-fresh)', array($this, 'app_secret_callback'), 'nakama-instagram-feed', 'nakama_api_section');
 
-        add_settings_field(
-            'header_text',
-            'Título del Encabezado',
-            array($this, 'header_text_callback'),
-            'nakama-instagram-feed',
-            'nakama_display_section'
-        );
+        add_settings_section('nakama_display_section', 'Configuración Visual', null, 'nakama-instagram-feed');
+        add_settings_field('header_text', 'Título del Encabezado', array($this, 'header_text_callback'), 'nakama-instagram-feed', 'nakama_display_section');
+        add_settings_field('header_subtitle', 'Subtítulo (Descripción Corta)', array($this, 'header_subtitle_callback'), 'nakama-instagram-feed', 'nakama_display_section');
+        add_settings_field('header_alignment', 'Alineación del Encabezado', array($this, 'header_alignment_callback'), 'nakama-instagram-feed', 'nakama_display_section');
+    }
 
-        add_settings_field(
-            'header_subtitle',
-            'Subtítulo (Descripción Corta)',
-            array($this, 'header_subtitle_callback'),
-            'nakama-instagram-feed',
-            'nakama_display_section'
-        );
+    public function sanitize_settings($input)
+    {
+        $old_options = get_option($this->option_name);
+        $new_input = array();
 
-        add_settings_field(
-            'header_alignment',
-            'Alineación del Encabezado',
-            array($this, 'header_alignment_callback'),
-            'nakama-instagram-feed',
-            'nakama_display_section'
-        );
+        // Token logic: Clean and Stamp
+        $new_token = isset($input['access_token']) ? trim($input['access_token']) : '';
+        $new_input['access_token'] = $new_token;
+
+        // If token changed or no timestamp exists, update timestamp
+        if (empty($old_options['token_timestamp']) || ($old_options['access_token'] !== $new_token)) {
+            $new_input['token_timestamp'] = time();
+        } else {
+            $new_input['token_timestamp'] = $old_options['token_timestamp'];
+        }
+
+        $new_input['app_id'] = isset($input['app_id']) ? sanitize_text_field($input['app_id']) : '';
+        $new_input['app_secret'] = isset($input['app_secret']) ? sanitize_text_field($input['app_secret']) : '';
+
+        $new_input['header_text'] = isset($input['header_text']) ? sanitize_text_field($input['header_text']) : '';
+        $new_input['header_subtitle'] = isset($input['header_subtitle']) ? sanitize_text_field($input['header_subtitle']) : '';
+        $new_input['header_alignment'] = isset($input['header_alignment']) ? sanitize_text_field($input['header_alignment']) : 'center';
+
+        return $new_input;
     }
 
     public function settings_page_html()
@@ -178,6 +171,50 @@ class Nakama_Instagram_Feed
         if (empty($access_token)) {
             return new WP_Error('no_token', 'No Access Token configured.');
         }
+
+        // --- AUTO REFRESH LOGIC ---
+        $timestamp = isset($options['token_timestamp']) ? $options['token_timestamp'] : 0;
+        if ($timestamp && (time() - $timestamp) > (45 * 86400)) { // 45 days
+
+            $new_token = null;
+
+            // Type A: Basic Display (IGQ...)
+            if (strpos($access_token, 'IGQ') === 0) {
+                $refresh_url = "https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token={$access_token}";
+                $response = wp_remote_get($refresh_url);
+                if (!is_wp_error($response)) {
+                    $body = json_decode(wp_remote_retrieve_body($response), true);
+                    if (isset($body['access_token'])) {
+                        $new_token = $body['access_token'];
+                    }
+                }
+            }
+            // Type B: Graph API (EAA...) - Requires App ID + Secret
+            elseif (strpos($access_token, 'EAA') === 0) {
+                $app_id = isset($options['app_id']) ? $options['app_id'] : '';
+                $app_secret = isset($options['app_secret']) ? $options['app_secret'] : '';
+
+                if ($app_id && $app_secret) {
+                    $refresh_url = "https://graph.facebook.com/v22.0/oauth/access_token?grant_type=fb_exchange_token&client_id={$app_id}&client_secret={$app_secret}&fb_exchange_token={$access_token}";
+                    $response = wp_remote_get($refresh_url);
+                    if (!is_wp_error($response)) {
+                        $body = json_decode(wp_remote_retrieve_body($response), true);
+                        if (isset($body['access_token'])) {
+                            $new_token = $body['access_token'];
+                        }
+                    }
+                }
+            }
+
+            // Save new token if refreshed
+            if ($new_token) {
+                $options['access_token'] = $new_token;
+                $options['token_timestamp'] = time();
+                update_option($this->option_name, $options);
+                $access_token = $new_token; // Use new token for this request
+            }
+        }
+        // --------------------------
 
         $transient_key = 'nakama_insta_feed_' . md5($access_token);
         $cached_data = get_transient($transient_key);
