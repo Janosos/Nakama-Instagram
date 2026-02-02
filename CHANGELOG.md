@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.1] - 2026-02-01
+### Corregido
+- Solucionado error crítico en la página de configuración debido a callbacks faltantes para App ID/Secret.
+- Actualizada la sección de "Ayuda / Instrucciones" con guía detallada para Graph API y Auto-Refresh.
+
 ## [1.6.0] - 2026-02-01
 ### Añadido
 - **Fallo Silencioso**: El frontend ya no muestra errores de PHP/API si algo falla, evitando exponer rutas o tokens.

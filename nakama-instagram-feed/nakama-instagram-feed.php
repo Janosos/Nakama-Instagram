@@ -3,7 +3,7 @@
  * Plugin Name: Nakama Instagram Feed
  * Plugin URI: https://imperiodev.com
  * Description: Conecta tu cuenta de Instagram para mostrar el feed en tiempo real. Optimizado y personalizado para Nakama Bordados.
- * Version: 1.2.0
+ * Version: 1.6.0
  * Author: ImperioDev
  * Author URI: https://imperiodev.com
  * License: GPL2
@@ -37,10 +37,11 @@ class Nakama_Instagram_Feed
         $options = get_option($this->option_name);
         if (!empty($options['nakama_token_error_msg'])) {
             ?>
-                        <div class="notice notice-error is-dismissible">
-                            <p><strong>Actualización Requerida (Nakama Instagram):</strong> <?php echo esc_html($options['nakama_token_error_msg']); ?></p>
-                        </div>
-                        <?php
+            <div class="notice notice-error is-dismissible">
+                <p><strong>Actualización Requerida (Nakama Instagram):</strong>
+                    <?php echo esc_html($options['nakama_token_error_msg']); ?></p>
+            </div>
+            <?php
         }
     }
 
@@ -107,22 +108,28 @@ class Nakama_Instagram_Feed
         <div class="wrap">
             <h1>Configuración Nakama Instagram Feed</h1>
 
-            <div class="card" style="max-width: 100%; margin-bottom: 20px;">
-                <h2>Ayuda rápida / Instrucciones</h2>
-                <ol>
+            <div class="card" style="max-width: 100%; margin-bottom: 20px; padding: 20px;">
+                <h2 style="margin-top: 0;">Ayuda rápida / Instrucciones</h2>
+                <hr>
+                <h3 style="margin-bottom: 10px;">Opción A: Cuenta Personal (Legacy)</h3>
+                <ol style="margin-left: 20px; list-style: decimal;">
+                    <li>Obtén tu token <code>IGQ...</code> (Basic Display) y pégalo en "Instagram Access Token".</li>
+                    <li>Guarda los cambios. No necesitas App ID ni Secret.</li>
+                </ol>
+
+                <h3 style="margin-bottom: 10px; margin-top: 20px;">Opción B: Cuenta Profesional/Business (Recomendado)</h3>
+                <ol style="margin-left: 20px; list-style: decimal;">
+                    <li>Genera un token <code>EAA...</code> con permisos <code>instagram_graph_user_media</code>.</li>
+                    <li>Pega el token en "Instagram Access Token".</li>
                     <li>
-                        <strong>1. Obtener Token:</strong> Genera tu "User Access Token" en la
-                        <a href="https://developers.facebook.com/docs/instagram-basic-display-api/getting-started"
-                            target="_blank">API de Instagram Basic Display</a>.
-                    </li>
-                    <li>
-                        <strong>2. Configurar:</strong> Pega el token en el campo de abajo y guarda los cambios.
-                    </li>
-                    <li>
-                        <strong>3. Implementar:</strong> Copia y pega el siguiente shortcode en cualquier página:
-                        <code>[nakama_instagram_feed]</code>
+                        <strong>Para Auto-Refresh (Vital):</strong> Copia el <strong>App ID</strong> y <strong>App
+                            Secret</strong> de tu aplicación en Meta Developers y pégalos en los campos correspondientes.
+                        Esto permitirá que el token se renueve automáticamente antes de caducar (45+ días).
                     </li>
                 </ol>
+
+                <hr>
+                <p><strong>Uso:</strong> Copia y pega el shortcode: <code>[nakama_instagram_feed]</code></p>
             </div>
 
             <form action="options.php" method="post">
@@ -144,8 +151,33 @@ class Nakama_Instagram_Feed
     {
         $options = get_option($this->option_name);
         $value = isset($options['access_token']) ? $options['access_token'] : '';
-        echo '<input type="text" name="' . $this->option_name . '[access_token]" value="' . esc_attr($value) . '" class="regular-text" />';
-        echo '<p class="description">Token de acceso de Instagram Basic Display API.</p>';
+
+        // Show status
+        $timestamp = isset($options['token_timestamp']) ? $options['token_timestamp'] : 0;
+        $date = $timestamp ? date('d-m-Y', $timestamp) : 'N/A';
+        $age_days = $timestamp ? floor((time() - $timestamp) / 86400) : 0;
+
+        echo '<textarea name="' . $this->option_name . '[access_token]" rows="3" cols="50" class="large-text code">' . esc_textarea($value) . '</textarea>';
+        if ($timestamp) {
+            echo "<p class='description'><strong>Estado:</strong> Generado el $date (Hace $age_days días). " . ($age_days > 45 ? "<span style='color:red;'>Se intentará renovar en la próxima visita.</span>" : "<span style='color:green;'>Válido.</span>") . "</p>";
+        } else {
+            echo '<p class="description">Introduce tu token (IGQ... o EAA...).</p>';
+        }
+    }
+
+    public function app_id_callback()
+    {
+        $options = get_option($this->option_name);
+        $val = isset($options['app_id']) ? $options['app_id'] : '';
+        echo '<input type="text" name="' . $this->option_name . '[app_id]" value="' . esc_attr($val) . '" class="regular-text" />';
+        echo '<p class="description">Requerido solo si usas tokens EAA (Graph API) y quieres auto-refresh.</p>';
+    }
+
+    public function app_secret_callback()
+    {
+        $options = get_option($this->option_name);
+        $val = isset($options['app_secret']) ? $options['app_secret'] : '';
+        echo '<input type="password" name="' . $this->option_name . '[app_secret]" value="' . esc_attr($val) . '" class="regular-text" />';
     }
 
     public function header_text_callback()
@@ -181,9 +213,9 @@ class Nakama_Instagram_Feed
         $options = get_option($this->option_name);
         $access_token = isset($options['access_token']) ? trim($options['access_token']) : '';
 
-        if ( empty( $access_token ) ) {
-            error_log( 'Nakama Instagram: No Access Token configured.' );
-            return new WP_Error( 'no_token', 'No Access Token configured.' );
+        if (empty($access_token)) {
+            error_log('Nakama Instagram: No Access Token configured.');
+            return new WP_Error('no_token', 'No Access Token configured.');
         }
 
         // --- AUTO REFRESH LOGIC ---
@@ -301,14 +333,14 @@ class Nakama_Instagram_Feed
             $error_msg .= '| Graph API: No linked Instagram Business Account found (Check Facebook Page connection).';
         }
 
-        $final_error = new WP_Error( 'api_error', $error_msg );
-        
+        $final_error = new WP_Error('api_error', $error_msg);
+
         // LOGGING: Save error to server log
-        error_log( 'Nakama Instagram API Error: ' . $error_msg );
+        error_log('Nakama Instagram API Error: ' . $error_msg);
 
         // Admin Notice Flag (ensure it's set on fetch failure too, not just refresh)
         $options['nakama_token_error_msg'] = "Error al obtener feed: " . $error_msg;
-        update_option( $this->option_name, $options );
+        update_option($this->option_name, $options);
 
         return $final_error;
     }
@@ -348,10 +380,10 @@ class Nakama_Instagram_Feed
         // Fetch posts
         $posts = $this->get_instagram_posts();
 
-        if ( is_wp_error( $posts ) ) {
+        if (is_wp_error($posts)) {
             // SILENT FAILURE: Frontend should NOT show error.
             // Logged to server error log and verified via Admin Notice.
-            return ''; 
+            return '';
         }
 
         ob_start();
