@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.5.0] - 2026-02-01
+### Añadido
+- **Notificaciones de Admin**: Alertas visuales en el panel de WordPress si el token expira o falla el auto-refresh.
+- Lógica reforzada para evitar refrescos prematuros (mínimo 45 días) y manejo de errores de API.
+
 ## [1.4.0] - 2026-02-01
 ### Añadido
 - **Auto-Refresh de Tokens**: Implementación de lógica interna para renovar automáticamente el token de acceso cuando tiene más de 45 días de antigüedad.

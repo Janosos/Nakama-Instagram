@@ -24,11 +24,24 @@ class Nakama_Instagram_Feed
         add_action('admin_init', array($this, 'register_settings'));
         add_shortcode('nakama_instagram_feed', array($this, 'render_shortcode'));
         add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
+        add_action('admin_notices', array($this, 'check_token_errors'));
     }
 
     public function enqueue_scripts()
     {
         // Enqueue fonts/styles if needed. Assuming theme handles Tailwind handling.
+    }
+
+    public function check_token_errors()
+    {
+        $options = get_option($this->option_name);
+        if (!empty($options['nakama_token_error_msg'])) {
+            ?>
+                        <div class="notice notice-error is-dismissible">
+                            <p><strong>Actualización Requerida (Nakama Instagram):</strong> <?php echo esc_html($options['nakama_token_error_msg']); ?></p>
+                        </div>
+                        <?php
+        }
     }
 
     public function add_admin_menu()
