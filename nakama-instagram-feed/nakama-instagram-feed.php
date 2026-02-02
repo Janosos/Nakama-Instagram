@@ -181,8 +181,9 @@ class Nakama_Instagram_Feed
         $options = get_option($this->option_name);
         $access_token = isset($options['access_token']) ? trim($options['access_token']) : '';
 
-        if (empty($access_token)) {
-            return new WP_Error('no_token', 'No Access Token configured.');
+        if ( empty( $access_token ) ) {
+            error_log( 'Nakama Instagram: No Access Token configured.' );
+            return new WP_Error( 'no_token', 'No Access Token configured.' );
         }
 
         // --- AUTO REFRESH LOGIC ---
@@ -300,7 +301,16 @@ class Nakama_Instagram_Feed
             $error_msg .= '| Graph API: No linked Instagram Business Account found (Check Facebook Page connection).';
         }
 
-        return new WP_Error('api_error', $error_msg);
+        $final_error = new WP_Error( 'api_error', $error_msg );
+        
+        // LOGGING: Save error to server log
+        error_log( 'Nakama Instagram API Error: ' . $error_msg );
+
+        // Admin Notice Flag (ensure it's set on fetch failure too, not just refresh)
+        $options['nakama_token_error_msg'] = "Error al obtener feed: " . $error_msg;
+        update_option( $this->option_name, $options );
+
+        return $final_error;
     }
 
     public function render_shortcode($atts)
@@ -338,11 +348,10 @@ class Nakama_Instagram_Feed
         // Fetch posts
         $posts = $this->get_instagram_posts();
 
-        if (is_wp_error($posts)) {
-            if (current_user_can('manage_options')) {
-                return '<div class="text-red-500 p-4">Error: ' . $posts->get_error_message() . '</div>';
-            }
-            return '';
+        if ( is_wp_error( $posts ) ) {
+            // SILENT FAILURE: Frontend should NOT show error.
+            // Logged to server error log and verified via Admin Notice.
+            return ''; 
         }
 
         ob_start();

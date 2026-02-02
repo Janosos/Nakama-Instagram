@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.6.0] - 2026-02-01
+### Añadido
+- **Fallo Silencioso**: El frontend ya no muestra errores de PHP/API si algo falla, evitando exponer rutas o tokens.
+- **Logging del Servidor**: Los errores críticos se escriben en el `error_log` del servidor para depuración segura.
+- **Notificaciones de Admin**: Se mantiene el aviso rojo solo para administradores en el Backend.
+
 ## [1.5.0] - 2026-02-01
 ### Añadido
 - **Notificaciones de Admin**: Alertas visuales en el panel de WordPress si el token expira o falla el auto-refresh.
