@@ -100,13 +100,14 @@ class Nakama_Instagram_Feed
         ?>
         <div class="wrap">
             <h1>Configuración Nakama Instagram Feed</h1>
-            
+
             <div class="card" style="max-width: 100%; margin-bottom: 20px;">
                 <h2>Ayuda rápida / Instrucciones</h2>
                 <ol>
                     <li>
-                        <strong>1. Obtener Token:</strong> Genera tu "User Access Token" en la 
-                        <a href="https://developers.facebook.com/docs/instagram-basic-display-api/getting-started" target="_blank">API de Instagram Basic Display</a>.
+                        <strong>1. Obtener Token:</strong> Genera tu "User Access Token" en la
+                        <a href="https://developers.facebook.com/docs/instagram-basic-display-api/getting-started"
+                            target="_blank">API de Instagram Basic Display</a>.
                     </li>
                     <li>
                         <strong>2. Configurar:</strong> Pega el token en el campo de abajo y guarda los cambios.
@@ -172,7 +173,7 @@ class Nakama_Instagram_Feed
     private function get_instagram_posts($limit = 8)
     {
         $options = get_option($this->option_name);
-        $access_token = isset($options['access_token']) ? $options['access_token'] : '';
+        $access_token = isset($options['access_token']) ? trim($options['access_token']) : '';
 
         if (empty($access_token)) {
             return new WP_Error('no_token', 'No Access Token configured.');
@@ -185,28 +186,71 @@ class Nakama_Instagram_Feed
             return $cached_data;
         }
 
-        $url = "https://graph.instagram.com/me/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp&access_token={$access_token}&limit={$limit}";
+        // 1. Try Basic Display API (IGQ tokens or Instagram Login)
+        // Endpoint: graph.instagram.com/me/media
+        $basic_url = "https://graph.instagram.com/me/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp&access_token={$access_token}&limit={$limit}";
+        $response = wp_remote_get($basic_url);
 
-        $response = wp_remote_get($url);
+        if (!is_wp_error($response)) {
+            $data = json_decode(wp_remote_retrieve_body($response), true);
 
-        if (is_wp_error($response)) {
-            return $response;
+            if (isset($data['data'])) {
+                $posts = $data['data'];
+                set_transient($transient_key, $posts, 900);
+                return $posts;
+            }
+            // If error is specifically OAuth, try Graph API Fallback
         }
 
-        $body = wp_remote_retrieve_body($response);
-        $data = json_decode($body, true);
+        // 2. Fallback: Try Graph API (EAA tokens for Business/Creator)
+        // Step A: Get User's Pages -> Instagram Business Account
+        $accounts_url = "https://graph.facebook.com/v22.0/me/accounts?fields=instagram_business_account&access_token={$access_token}";
+        $accounts_response = wp_remote_get($accounts_url);
 
+        if (is_wp_error($accounts_response)) {
+            // Return original Basic error if Graph also fails immediately
+            return isset($data['error']) ? new WP_Error('api_error', 'Basic: ' . $data['error']['message']) : $accounts_response;
+        }
+
+        $accounts_body = json_decode(wp_remote_retrieve_body($accounts_response), true);
+
+        $ig_business_id = null;
+        if (isset($accounts_body['data'])) {
+            foreach ($accounts_body['data'] as $page) {
+                if (isset($page['instagram_business_account']['id'])) {
+                    $ig_business_id = $page['instagram_business_account']['id'];
+                    break;
+                }
+            }
+        }
+
+        if ($ig_business_id) {
+            // Step B: Get Media from that ID
+            $media_url = "https://graph.facebook.com/v22.0/{$ig_business_id}/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp&access_token={$access_token}&limit={$limit}";
+            $media_response = wp_remote_get($media_url);
+
+            if (!is_wp_error($media_response)) {
+                $media_data = json_decode(wp_remote_retrieve_body($media_response), true);
+                if (isset($media_data['data'])) {
+                    $posts = $media_data['data'];
+                    set_transient($transient_key, $posts, 900);
+                    return $posts;
+                }
+            }
+        }
+
+        // If we reached here, both methods failed. Return meaningful error.
+        $error_msg = 'No valid media found. ';
         if (isset($data['error'])) {
-            return new WP_Error('api_error', $data['error']['message']);
+            $error_msg .= 'Basic API: ' . $data['error']['message'] . ' ';
+        }
+        if (isset($accounts_body['error'])) {
+            $error_msg .= '| Graph API: ' . $accounts_body['error']['message'];
+        } else if (empty($ig_business_id)) {
+            $error_msg .= '| Graph API: No linked Instagram Business Account found (Check Facebook Page connection).';
         }
 
-        if (isset($data['data'])) {
-            $posts = $data['data'];
-            set_transient($transient_key, $posts, 900);
-            return $posts;
-        }
-
-        return array();
+        return new WP_Error('api_error', $error_msg);
     }
 
     public function render_shortcode($atts)

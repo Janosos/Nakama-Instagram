@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0] - 2026-02-01
+### Añadido
+- Soporte para **Instagram Graph API** (Cuentas Business/Creator) con tokens `EAA...`.
+- Detección automática del tipo de token (Básico vs Graph).
+- Fallback automático para buscar cuentas de Instagram Business vinculadas a Páginas de Facebook si el acceso directo falla.
+- Actualización de documentación y walkthrough para cumplir con los nuevos requisitos de Meta (Cuenta Profesional recomendada).
+
 ## [1.2.0] - 2026-02-01
 ### Añadido
 - Nueva sección de "Ayuda / Instrucciones" dentro de la configuración del plugin con un walkthrough paso a paso para la activación.

@@ -4,6 +4,7 @@ Plugin de WordPress desarrollado a medida para **Nakama Bordados**. Conecta tu c
 
 ## Características
 
+*   **Soporte Multi-API**: Detecta y utiliza automáticamente "Instagram Basic Display" (Legacy) o "Instagram Graph API" (Profesional/Creador).
 *   **Integración con API de Instagram**: Muestra tus últimas publicaciones automáticamente.
 *   **Optimización de Rendimiento**: Uso de Transients de WordPress para cachear la respuesta de la API (15 minutos) y mejorar la velocidad de carga.
 *   **Diseño Personalizado**: Estilos CSS basados en Tailwind y adaptados a la identidad visual de Nakama (soporte para modo oscuro).
